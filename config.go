@@ -1,7 +1,9 @@
 package db_sql_generator
 
+import "github.com/Compogo/db-client/driver"
+
 type Config struct {
-	Driver Driver
+	Driver driver.Driver
 }
 
 func NewConfig() *Config {
