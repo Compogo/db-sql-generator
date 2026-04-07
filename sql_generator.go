@@ -34,5 +34,7 @@ func NewGenerator(config *Config, informer logger.Informer) (*goqu.DialectWrappe
 
 	informer.Infof("[db-sql-generator] usage dialect '%s' for driver '%s'", alias, config.Driver.String())
 
-	return new(goqu.Dialect(alias)), nil
+	wrapper := goqu.Dialect(alias)
+
+	return &wrapper, nil
 }
