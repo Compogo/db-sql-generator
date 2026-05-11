@@ -32,9 +32,7 @@ func NewGenerator(config *Config, informer logger.Informer) (*goqu.DialectWrappe
 		return nil, fmt.Errorf("[db-sql-generator] get driver '%s' dialect alias failed '': %w", config.Driver, err)
 	}
 
-	informer.Infof("[db-sql-generator] usage dialect '%s' for driver '%s'", alias, config.Driver.String())
+	informer.Infof("[db-sql-generator] usage dialect '%s' for driver '%s'", alias, config.Driver)
 
-	wrapper := goqu.Dialect(alias)
-
-	return &wrapper, nil
+	return new(goqu.Dialect(alias)), nil
 }

@@ -1,14 +1,13 @@
 package db_sql_generator
 
 import (
-	"github.com/Compogo/db-client/driver"
 	"github.com/Compogo/types/linker"
 )
 
 var (
 	// aliases stores dialect aliases for each registered database driver.
 	// The linker associates each Driver with its corresponding goqu dialect string.
-	aliases = linker.NewLinker[driver.Driver, string]()
+	aliases = linker.NewLinker[string, string](linker.KeyStringNormalizer[string]())
 )
 
 // Registration registers a new database driver and its goqu dialect alias.
@@ -20,6 +19,6 @@ var (
 //	func init() {
 //	    db_sql_generator.Registration(Postgres, "postgres")
 //	}
-func Registration(d driver.Driver, alias string) {
-	aliases.Add(d, alias)
+func Registration(driverName string, alias string) {
+	aliases.Add(driverName, alias)
 }
