@@ -1,86 +1,100 @@
-# Compogo DB SQL Generator 🛠️
+# Compogo DB SQL Generator
 
-**Compogo DB SQL Generator** — компонент для типобезопасного построения SQL-запросов, построенный на базе [goqu](https://github.com/doug-martin/goqu). Автоматически использует диалект, соответствующий драйверу, выбранному в `db-client`.
+SQL-генератор для фреймворка [Compogo](https://github.com/Compogo/compogo).
 
-## 🚀 Установка
+На основе [goqu](https://github.com/doug-martin/goqu) предоставляет:
 
-```bash
+* Генерацию SQL-запросов для различных СУБД (MySQL, PostgreSQL, SQLite)
+* Типобезопасное построение запросов
+* Автоматический выбор диалекта по драйверу БД
+* Плагинную систему диалектов
+
+## Установка
+
+```shell
 go get github.com/Compogo/db-sql-generator
 ```
 
-### 📦 Быстрый старт
+## Быстрый старт
 
 ```go
 package main
 
 import (
     "github.com/Compogo/compogo"
-    "github.com/Compogo/db-client"
     "github.com/Compogo/db-sql-generator"
-    _ "github.com/Compogo/postgres" // ваш драйвер БД
+	"github.com/doug-martin/goqu"
 )
 
 func main() {
     app := compogo.NewApp("myapp",
-        compogo.WithOsSignalCloser(),
-        db_client.Component,           // выбираем драйвер через --db.driver
-        db_sql_generator.Component,    // генератор запросов
-        compogo.WithComponents(
-            userRepositoryComponent,
-        ),
+        compogo.WithComponents(&db_sql_generator.Component),
     )
+
+    app.AddComponents(&compogo.Component{
+        Name: "user_repository",
+        Init: compogo.StepFunc(func(container compogo.Container) error {
+            return container.Invoke(func(gen *goqu.DialectWrapper) error {
+                // Генерация SELECT
+                sql, args, _ := gen.From("users").Where(goqu.C("age").Gt(18)).ToSQL()
+                // SELECT * FROM users WHERE age > 18
+
+                // Генерация INSERT
+                sql, args, _ := gen.Insert("users").Rows(goqu.Record{
+                    "name": "John",
+                    "age":  30,
+                }).ToSQL()
+                // INSERT INTO users (name, age) VALUES ('John', 30)
+
+                return nil
+            })
+        }),
+    })
 
     if err := app.Serve(); err != nil {
         panic(err)
     }
 }
+```
 
-// Репозиторий, использующий генератор
-var userRepositoryComponent = &component.Component{
-    Dependencies: component.Components{
-        db_client.Component,
-        db_sql_generator.Component,
-    },
-    Execute: component.StepFunc(func(c container.Container) error {
-        return c.Invoke(func(db db_client.Client, gen *goqu.DialectWrapper) {
-            repo := &UserRepository{db: db, generator: gen}
-            // ... регистрация репозитория
-        })
-    }),
-}
+## Регистрация диалектов
 
-type UserRepository struct {
-    db        db_client.Client
-    generator *goqu.DialectWrapper
-}
+```go
+import "github.com/Compogo/db-sql-generator"
 
-func (r *UserRepository) GetUsers(ctx context.Context) ([]User, error) {
-    // Строим типобезопасный запрос
-    query := r.generator.From("users").
-        Where(goqu.C("active").IsTrue()).
-        Order(goqu.C("created_at").Desc()).
-        Limit(20)
-
-    sql, _, _ := query.ToSQL()
-    rows, err := r.db.QueryContext(ctx, sql)
-    // ...
+func init() {
+    db_sql_generator.Registration("mysql", "mysql")
 }
 ```
 
-### ✨ Возможности
+## Зависимости
 
-#### 🔌 Плагинная архитектура диалектов
+* [Compogo](https://github.com/Compogo/compogo) — основной фреймворк
+* [goqu](https://github.com/doug-martin/goqu) — SQL-генератор
 
-Драйверы БД сами регистрируют свой диалект для goqu:
+## Лицензия
 
-```go
-// В драйвере postgres
-func init() {
-    db_sql_generator.Registration(Postgres, "postgres")
-}
+```plantuml
+MIT License
 
-// В драйвере mysql
-func init() {
-    db_sql_generator.Registration(MySQL, "mysql")
-}
+Copyright (c) 2026 Compogo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ```
